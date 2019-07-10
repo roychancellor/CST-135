@@ -12,7 +12,7 @@ public class Controller {
 		wr.getWords();
 		//Get file name from the user
 		wr.getUserFileName();
-		//Write words to the file
+		//Write words to the file the user entered
 		wr.writeWords();
 		
 		//Read words from the file
