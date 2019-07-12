@@ -7,6 +7,7 @@ public class Controller {
 	public static void main(String[] args) throws IOException {
 		
 		// Adding comments
+		// Adding more comments
 		LongestCommonString lcs = new LongestCommonString();
 		Writer wr = new Writer();
 		
