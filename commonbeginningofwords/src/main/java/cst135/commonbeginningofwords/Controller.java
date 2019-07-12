@@ -8,6 +8,7 @@ public class Controller {
 		
 		// Adding comments
 		// Adding more comments
+		// Add more and morecomments
 		LongestCommonString lcs = new LongestCommonString();
 		Writer wr = new Writer();
 		
