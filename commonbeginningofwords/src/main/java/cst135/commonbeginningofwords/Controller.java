@@ -5,6 +5,8 @@ import java.io.IOException;
 public class Controller {
 
 	public static void main(String[] args) throws IOException {
+		
+		// Adding comments
 		LongestCommonString lcs = new LongestCommonString();
 		Writer wr = new Writer();
 		
