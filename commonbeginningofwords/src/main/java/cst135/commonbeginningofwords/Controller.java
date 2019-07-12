@@ -6,9 +6,7 @@ public class Controller {
 
 	public static void main(String[] args) throws IOException {
 		
-		// Adding comments
-		// Adding more comments
-		// Add more and morecomments
+		// Add more and more comments
 		LongestCommonString lcs = new LongestCommonString();
 		Writer wr = new Writer();
 		
@@ -28,7 +26,7 @@ public class Controller {
 			System.out.println("\t" + word);
 		
 		//Find the longest common beginning string
-		System.out.println("Largest common string: " + lcs.longestCommon());
+		System.out.println("Biggest common string: " + lcs.longestCommon());
 		
 		//Write the common string to a file
 		lcs.writeCommonString();
