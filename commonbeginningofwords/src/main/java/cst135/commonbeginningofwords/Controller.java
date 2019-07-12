@@ -5,8 +5,7 @@ import java.io.IOException;
 public class Controller {
 
 	public static void main(String[] args) throws IOException {
-		// Add comments for testing
-		// Add more and more comments
+
 		LongestCommonString lcs = new LongestCommonString();
 		Writer wr = new Writer();
 		
@@ -25,8 +24,8 @@ public class Controller {
 		for(String word : lcs.getWords())
 			System.out.println("\t" + word);
 		
-		//Find the ROB's TEST common beginning string
-		System.out.println("Biggest common string: " + lcs.longestCommon());
+		//Find the longest beginning string
+		System.out.println("Longest common string: " + lcs.longestCommon());
 		
 		//Write the common string to a file
 		lcs.writeCommonString();
