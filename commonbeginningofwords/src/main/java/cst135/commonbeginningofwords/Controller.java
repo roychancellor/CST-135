@@ -25,7 +25,7 @@ public class Controller {
 		for(String word : lcs.getWords())
 			System.out.println("\t" + word);
 		
-		//Find the longest common beginning string
+		//Find the BIGGEST common beginning string
 		System.out.println("Biggest common string: " + lcs.longestCommon());
 		
 		//Write the common string to a file
