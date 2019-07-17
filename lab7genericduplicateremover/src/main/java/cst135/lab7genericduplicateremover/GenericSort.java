@@ -33,7 +33,7 @@ public class GenericSort {
 			System.out.print(list.get(i) + " ");
 	}
 	
-	//Remove duplicates from a list
+	//Remove duplicates from a list by comparing the current item to the previous
 	public <E> void removeDuplicates(List<E> dupList) {
 		int i = 1;
 		while(i < dupList.size()) {
