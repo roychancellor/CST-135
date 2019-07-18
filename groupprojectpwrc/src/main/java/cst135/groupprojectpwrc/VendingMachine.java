@@ -1,10 +1,11 @@
 package cst135.groupprojectpwrc;
 
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 
 public class VendingMachine {
-	//Class data fields
+	// Class data fields
 	private String selection;
 	private int numRows;
 	private int numCols;
@@ -36,8 +37,8 @@ public class VendingMachine {
 		 this.root = root;
 	}
 
-	//Accessors and Mutators
-	
+	// Accessors and Mutators
+
 	/**
 	 * @return the machineID
 	 */
@@ -100,7 +101,7 @@ public class VendingMachine {
 	public Item[][] getItems() {
 		return items;
 	}
-	
+
 	/**
 	 * @return the itemsPerTube
 	 */
@@ -143,15 +144,15 @@ public class VendingMachine {
 		return payment;
 	}
 
-	//Class methods
-	
+	// Class methods
+
 	/**
 	 * @return the transactions
 	 */
 	public List<Transaction> getTransactions() {
 		return transactions;
 	}
-	
+
 	/**
 	 * @return the root
 	 */
@@ -187,7 +188,7 @@ public class VendingMachine {
 		return this.machineID + ": lat " + this.machineLatitude + ", long " + this.machineLongitude;
 	}
 
-	//Class methods
+	// Class methods
 	/**
 	 * method that perpetually runs an initialized machine
 	 */
@@ -219,68 +220,68 @@ public class VendingMachine {
 			System.out.println("\n*** ERROR: Machine uninitialized. Stopping.");
 		}
 	}
-	
+
 	/**
-	 * the primary method for purchasing items from the machine
-	 * gets a selection from the user, determines if the item is available,
-	 * gets cash payment, dispenses item, updates inventory, and records
-	 * the transaction for administrator analysis
+	 * the primary method for purchasing items from the machine gets a selection
+	 * from the user, determines if the item is available, gets cash payment,
+	 * dispenses item, updates inventory, and records the transaction for
+	 * administrator analysis
 	 */
 	private void purchaseItem() {
 		//Check availability of item: if available, get payment and dispense item; if not, alert user
 		if(itemIsAvailable()) {
 			System.out.println("\nPurchasing " + items[getRow()][getCol()].getDescription());
-			
-			//Get cash payment from the user
+
+			// Get cash payment from the user
 			payment = new Payment(items[getRow()][getCol()].getSalesPrice());
 			payment.doCashPayment();
-			
-			//Dispense item
+
+			// Dispense item
 			dispenseItem();
-			
-			//Update inventory of the item
+
+			// Update inventory of the item
 			decrementInventory();
-			
-			//Record the transaction
-			recordTransaction();			
-		}
-		else {
+
+			// Record the transaction
+			recordTransaction();
+		} else {
 			FrontEnd.showItemNotAvailable(items[getRow()][getCol()].getDescription());
 		}
 	}
-	
+
 	/**
 	 * determines if an item is available
+	 * 
 	 * @return the boolean value of item inventory > 0
 	 */
 	private boolean itemIsAvailable() {
 		return items[getRow()][getCol()].getCurrentInventory() > 0;
 	}
-	
+
 	/**
-	 * dispenses an item to the user (simulated since no physical machine)
-	 * outputs a message to the user
+	 * dispenses an item to the user (simulated since no physical machine) outputs a
+	 * message to the user
 	 */
 	private void dispenseItem() {
-		//Dispense the item to the user
+		// Dispense the item to the user
 		System.out.println("\n<<<< whirring >>>>");
 		System.out.println("<<<< clunk >>>>");
-		System.out.println("\n" + items[getRow()][getCol()].getConsumerMessage());	
+		System.out.println("\n" + items[getRow()][getCol()].getConsumerMessage());
 	}
-	
+
 	/**
 	 * decrements the item inventory and alerts the administrator of low inventory
 	 */
 	private void decrementInventory() {
-		//Decrement the item inventory
+		// Decrement the item inventory
 		items[getRow()][getCol()].setCurrentInventory(items[getRow()][getCol()].getCurrentInventory() - 1);
-		
-		//Alert administrator of low inventory
-		if(items[getRow()][getCol()].getCurrentInventory() <= items[getRow()][getCol()].getMinStockLevel()) {
-			this.alertLowStock();			
-		}		
+
+		// Alert administrator of low inventory
+		if (items[getRow()][getCol()].getCurrentInventory() <= items[getRow()][getCol()].getMinStockLevel()) {
+			this.alertLowStock();
+		}
 	}
-	
+
 	/**
 	 * adds a transaction to the transaction list
 	 */
@@ -293,28 +294,34 @@ public class VendingMachine {
 			items[getRow()][getCol()].getSalesPrice())
 		);
 	}
-	
+
 	/**
 	 * Alerts the machine administrator of low inventory for an item
 	 */
 	private void alertLowStock() {
-		if(!items[getRow()][getCol()].isAdminAlerted()) {
+		if (!items[getRow()][getCol()].isAdminAlerted()) {
 			System.out.println("\n@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@");
 			System.out.println(" Messaging administrator:");
-			messageAdmin("Low stock of " + items[getRow()][getCol()].getDescription()
-				+ " in machine: " + this.toString());
+//			messageAdmin("Low stock of " + items[getRow()][getCol()].getDescription() + " in machine: " + this.toString());
+			messageAdmin("Low stock of " + items[getRow()][getCol()].getDescription());
 			System.out.println("@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@");
-			
+
 			items[getRow()][getCol()].setAdminAlerted(true);
 		}
-	}	
-	
+	}
+
 	/**
 	 * sends message to machine administrator
+	 * 
 	 * @param message
 	 */
-	private void messageAdmin(String message) { 
-		System.out.println(" Sending message to " + root.getPhoneNumber() + "\n \"" + message + "\"" );
+	private void messageAdmin(String message) {
+		try {
+			Runtime.getRuntime().exec("sendemail -f vending.machine.cst135@gmail.com -m \"" + message + "\"  -t 6026894457@vtext.com -s smtp.gmail.com:587 -xu vending.machine.cst135@gmail.com -xp vendingMachine135");
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
+		System.out.println(" Sending message to " + root.getPhoneNumber() + "\n \"" + message + "\"");
 		System.out.println("\n <<<< swoosh....message sent >>>>");
 	}
 }
