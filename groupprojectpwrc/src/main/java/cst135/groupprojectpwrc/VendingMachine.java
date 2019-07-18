@@ -1,33 +1,39 @@
 package cst135.groupprojectpwrc;
 
-import java.util.Scanner;
+import java.util.ArrayList;
+import java.util.List;
 
 public class VendingMachine {
-	//Class data
-	private static int numRows;
-	private static int numCols;
-	private int rowSelect;
-	private int colSelect;
+	//Class data fields
+	private String selection;
+	private int numRows;
+	private int numCols;
+	private int row;
+	private int col;
 	private Item[][] items;
-	private static final int itemsPerTube = 10;
+	private final int ITEMS_PER_TUBE = 3;
 	private String machineID;
 	private double machineLatitude;
 	private double machineLongitude;
-	private Scanner sc = new Scanner(System.in);
+	private Payment payment;
+	private List<Transaction> transactions;
+	private Administrator root;
+	private boolean machineInitialized;
 	
 	/**
 	 * Constructor for a new VendingMachine object
-	 * @param numRows
-	 * @param numCols
+	 * @param numRows the number of horizontal rows in the machine
+	 * @param numCols the number of vertical columns in the machine
 	 */
-	public VendingMachine(int numRows, int numCols) {
+	public VendingMachine(int numRows, int numCols, Administrator root) {
 		 items = new Item[numRows][numCols];
-		 VendingMachine.numRows = numRows;
-		 VendingMachine.numCols = numCols;
+		 this.numRows = numRows;
+		 this.numCols = numCols;
 		 this.machineID = "PWRC1";
 		 this.machineLatitude = 33.512682;
 		 this.machineLongitude = -112.113626;
-		 loadMachine();
+		 this.transactions = new ArrayList<Transaction>();
+		 this.root = root;
 	}
 
 	//Accessors and Mutators
@@ -77,14 +83,14 @@ public class VendingMachine {
 	/**
 	 * @return the numRows
 	 */
-	public static int getNumRows() {
+	public int getNumRows() {
 		return numRows;
 	}
 
 	/**
 	 * @return the numCols
 	 */
-	public static int getNumCols() {
+	public int getNumCols() {
 		return numCols;
 	}
 
@@ -96,116 +102,219 @@ public class VendingMachine {
 	}
 	
 	/**
-	 * @return the rowSelect
+	 * @return the itemsPerTube
 	 */
-	public int getRowSelect() {
-		return rowSelect;
+	public int getItemsPerTube() {
+		return ITEMS_PER_TUBE;
 	}
 
 	/**
-	 * @param rowSelect the rowSelect to set
+	 * @return the row
 	 */
-	public void setRowSelect(int rowSelect) {
-		this.rowSelect = rowSelect;
+	public int getRow() {
+		return row;
 	}
 
 	/**
-	 * @return the colSelect
+	 * @param rowSelect the row to set
 	 */
-	public int getColSelect() {
-		return colSelect;
+	public void setRow(int rowSelect) {
+		this.row = rowSelect;
 	}
 
 	/**
-	 * @param colSelect the colSelect to set
+	 * @return the col
 	 */
-	public void setColSelect(int colSelect) {
-		this.colSelect = colSelect;
+	public int getCol() {
+		return col;
+	}
+
+	/**
+	 * @param colSelect the col to set
+	 */
+	public void setCol(int colSelect) {
+		this.col = colSelect;
+	}
+
+	/**
+	 * @return the payment
+	 */
+	public Payment getPayment() {
+		return payment;
 	}
 
 	//Class methods
-	public void restockItem() {
-		System.out.println("Restocking item[" + (rowSelect + 1) + "][" + (colSelect + 1) + "]");
+	
+	/**
+	 * @return the transactions
+	 */
+	public List<Transaction> getTransactions() {
+		return transactions;
 	}
 	
-	public void purchaseItem() {
-		processSelection(getSelection());
-		System.out.println("Purchasing " + items[getRowSelect()][getColSelect()].getDescription());
+	/**
+	 * @return the root
+	 */
+	public Administrator getRoot() {
+		return root;
+	}
+
+	/**
+	 * @param root the root to set
+	 */
+	public void setRoot(Administrator root) {
+		this.root = root;
+	}
+
+	/**
+	 * @return the machineInitialized
+	 */
+	public boolean isMachineInitialized() {
+		return machineInitialized;
+	}
+
+	/**
+	 * @param machineInitialized the machineInitialized to set
+	 */
+	public void setMachineInitialized(boolean machineInitialized) {
+		this.machineInitialized = machineInitialized;
+	}
+
+	/**
+	 * returns the machine ID with the latitude and longitude of its location
+	 */
+	public String toString() {
+		return this.machineID + ": lat " + this.machineLatitude + ", long " + this.machineLongitude;
+	}
+
+	//Class methods
+	/**
+	 * method that perpetually runs an initialized machine
+	 */
+	public void runMachine() {
+		if(this.isMachineInitialized()) {
+			do {
+				//Show machine customer interface
+				FrontEnd.displayMachineInterface(this.items);
+				
+				//Get the selection from the user (e.g. "B3")
+				this.selection = FrontEnd.getItemSelection(root.getPassCode());
+				
+				//Check for entry of admin password
+				if(this.selection.toUpperCase().equals(root.getPassCode().toUpperCase())) {
+					//Open the admin screen
+					root.runAdmin();
+				}
+				else {
+					//Convert the selection into a row-column reference for the items array
+					setRow(FrontEnd.selectionToRow());
+					setCol(FrontEnd.selectionToCol());
+					
+					//Purchase and dispense items
+					this.purchaseItem();				
+				}
+			} while(root.isMachineRunning());
+		}
+		else {
+			System.out.println("\n*** ERROR: Machine uninitialized. Stopping.");
+		}
 	}
 	
-	public void recordTransaction() {
-		System.out.println("Recording transaction for item[" + (rowSelect + 1) + "][" + (colSelect + 1) + "]");
+	/**
+	 * the primary method for purchasing items from the machine
+	 * gets a selection from the user, determines if the item is available,
+	 * gets cash payment, dispenses item, updates inventory, and records
+	 * the transaction for administrator analysis
+	 */
+	private void purchaseItem() {
+		//Check availability of item: if available, get payment and dispense item; if not, alert user
+		if(itemIsAvailable()) {
+			System.out.println("\nPurchasing " + items[getRow()][getCol()].getDescription());
+			
+			//Get cash payment from the user
+			payment = new Payment(items[getRow()][getCol()].getSalesPrice());
+			payment.doCashPayment();
+			
+			//Dispense item
+			dispenseItem();
+			
+			//Update inventory of the item
+			decrementInventory();
+			
+			//Record the transaction
+			recordTransaction();			
+		}
+		else {
+			FrontEnd.showItemNotAvailable(items[getRow()][getCol()].getDescription());
+		}
 	}
 	
-	//Move to Item class????
-	public void alertLowStock() {
-		System.out.println("Low stock for item[" + (rowSelect + 1) + "][" + (colSelect + 1) + "]");
+	/**
+	 * determines if an item is available
+	 * @return the boolean value of item inventory > 0
+	 */
+	private boolean itemIsAvailable() {
+		return items[getRow()][getCol()].getCurrentInventory() > 0;
 	}
 	
-	//Machine user interface
-	public void displayMachineInterface() {
-		final String PRICES = "|  $%.2f\t|  $%.2f\t|  $%.2f\t|\n";
-		System.out.println("$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$");
-		System.out.println("            Paul and Roy's Snack Box");
-		System.out.println("$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$");
-		System.out.println("|  " + items[0][0].getDescription() + "\t|  " + items[0][1].getDescription() + "\t|  " + items[0][2].getDescription() + "\t|");
-		//System.out.println("|  " + items[0][0].getSalesPrice() + "\t\t|  " + items[0][1].getSalesPrice() + "\t\t|  " + items[0][2].getSalesPrice() + "\t\t|");
-		System.out.format(PRICES, items[0][0].getSalesPrice(), items[0][1].getSalesPrice(), items[0][2].getSalesPrice());
-		System.out.println("|  A1\t\t|  B1\t\t|  C1\t\t|");
-		System.out.println("-------------------------------------------------");
-		System.out.println("|  " + items[1][0].getDescription() + "\t|  " + items[1][1].getDescription() + "\t|  " + items[1][2].getDescription() + "\t|");
-		//System.out.println("|  " + items[1][0].getSalesPrice() + "\t\t|  " + items[1][1].getSalesPrice() + "\t\t|  " + items[1][2].getSalesPrice() + "\t\t|");
-		System.out.format(PRICES, items[1][0].getSalesPrice(), items[1][1].getSalesPrice(), items[1][2].getSalesPrice());
-		System.out.println("|  A2\t\t|  B2\t\t|  C2\t\t|");
-		System.out.println("-------------------------------------------------");
-		System.out.println("|  " + items[2][0].getDescription() + "\t|  " + items[2][1].getDescription() + "\t|  " + items[2][2].getDescription() + "\t|");
-		//System.out.println("|  " + items[2][0].getSalesPrice() + "\t\t|  " + items[2][1].getSalesPrice() + "\t\t|  " + items[2][2].getSalesPrice() + "\t\t|");
-		System.out.format(PRICES, items[2][0].getSalesPrice(), items[2][1].getSalesPrice(), items[2][2].getSalesPrice());
-		System.out.println("|  A3\t\t|  B3\t\t|  C3\t\t|");
-		System.out.println("-------------------------------------------------");
+	/**
+	 * dispenses an item to the user (simulated since no physical machine)
+	 * outputs a message to the user
+	 */
+	private void dispenseItem() {
+		//Dispense the item to the user
+		System.out.println("\n<<<< whirring >>>>");
+		System.out.println("<<<< clunk >>>>");
+		System.out.println("\n" + items[getRow()][getCol()].getConsumerMessage());	
 	}
 	
-	//Creates the items for the machine
-	private void loadMachine() {
-		//double cost, String description, double salesPrice, int minStockLevel, int currentInventory
-		items[0][0] = new Item(0.25, "Fritos", 0.75, 3, itemsPerTube);
-		items[0][1] = new Item(0.25, "Doritos", 0.75, 3, itemsPerTube);
-		items[0][2] = new Item(0.25, "Cheetos", 0.75, 3, itemsPerTube);
-		items[1][0] = new Item(0.25, "Pop Tarts", 1.00, 3, itemsPerTube);
-		items[1][1] = new Item(0.25, "Red Vines", 1.25, 3, itemsPerTube);
-		items[1][2] = new Item(0.25, "Twizzlers", 1.25, 3, itemsPerTube);
-		items[2][0] = new Item(0.25, "Pretzels", 1.50, 3, itemsPerTube);
-		items[2][1] = new Item(0.25, "Beef Jerky", 1.75, 3, itemsPerTube);
-		items[2][2] = new Item(0.25, "M & Ms", 0.50, 3, itemsPerTube);
-	}
-	
-	private String getSelection() {
-		String selection;
+	/**
+	 * decrements the item inventory and alerts the administrator of low inventory
+	 */
+	private void decrementInventory() {
+		//Decrement the item inventory
+		items[getRow()][getCol()].setCurrentInventory(items[getRow()][getCol()].getCurrentInventory() - 1);
 		
-		do {
-			System.out.println("\nMake a selection (ex. A1):");
-			selection = sc.nextLine().toUpperCase();
-		} while((selection.charAt(0) != 'A' && selection.charAt(0) != 'B' && selection.charAt(0) != 'C') &&
-				(selection.charAt(1) != '1' && selection.charAt(1) != '2' && selection.charAt(1) != '3'));
-		
-		return selection;
+		//Alert administrator of low inventory
+		if(items[getRow()][getCol()].getCurrentInventory() <= items[getRow()][getCol()].getMinStockLevel()) {
+			this.alertLowStock();			
+		}		
 	}
 	
-	private void processSelection(String selection) {
-		//Set the item row
-		if(selection.charAt(0) == 'A')
-			setRowSelect(0);
-		else if(selection.charAt(0) == 'B')
-			setRowSelect(1);
-		else if(selection.charAt(0) == 'C')
-			setRowSelect(2);
-		
-		//Set the item column 
-		if(selection.charAt(1) == '1')
-			setColSelect(0);
-		else if(selection.charAt(1) == '2')
-			setColSelect(1);
-		else if(selection.charAt(1) == '3')
-			setColSelect(2);
+	/**
+	 * adds a transaction to the transaction list
+	 */
+	private  void recordTransaction() {
+		transactions.add(
+			new Transaction(this.machineID,
+			items[getRow()][getCol()].getDescription(),
+			this.selection,
+			items[getRow()][getCol()].getCost(),
+			items[getRow()][getCol()].getSalesPrice())
+		);
+	}
+	
+	/**
+	 * Alerts the machine administrator of low inventory for an item
+	 */
+	private void alertLowStock() {
+		if(!items[getRow()][getCol()].isAdminAlerted()) {
+			System.out.println("\n@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@");
+			System.out.println(" Messaging administrator:");
+			messageAdmin("Low stock of " + items[getRow()][getCol()].getDescription()
+				+ " in machine: " + this.toString());
+			System.out.println("@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@");
+			
+			items[getRow()][getCol()].setAdminAlerted(true);
+		}
+	}	
+	
+	/**
+	 * sends message to machine administrator
+	 * @param message
+	 */
+	private void messageAdmin(String message) { 
+		System.out.println(" Sending message to " + root.getPhoneNumber() + "\n \"" + message + "\"" );
+		System.out.println("\n <<<< swoosh....message sent >>>>");
 	}
 }
