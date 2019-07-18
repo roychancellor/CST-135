@@ -5,7 +5,7 @@ import java.io.IOException;
 public class Controller {
 
 	public static void main(String[] args) throws IOException {
-		// Add comments for testing
+
 		// Add more and more comments
 		LongestCommonString lcs = new LongestCommonString();
 		Writer wr = new Writer();
